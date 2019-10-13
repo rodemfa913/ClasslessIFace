@@ -3,33 +3,39 @@ package iface;
 import java.util.Scanner;
 
 public class IFace {
-    static boolean[][] friendRequests, friendship;
+    static String[][] communities;
+    static boolean[][] friendRequests, friendship, memberRequests, members;
     static Scanner input;
-    static String[] names, passwords, users;
-    static String[][][] profiles;
+    static String[][][] messages, profiles;
+    static int nAttribute, nUser, nCommunity, nMessage;
+    static int[] owners;
+    static String[] passwords, userNames, users;
 
     public static void main(String[] args) {
-        friendRequests = new boolean[16][16]; // [user][friend]
-        friendship = new boolean[16][16]; // [friend1][friend2]
-        input = new Scanner(System.in);
-        names = new String[16];
-        passwords = new String[16];
-        profiles = new String[16][8][2]; // [profile][attribute][key/value]
-        users = new String[16];
+        nAttribute = nMessage = 8;
+        nCommunity = nUser = 16;
 
-        String[] startActions = {"criar conta", "entrar"/*, "remover conta",
-            "enviar mensagem", "criar comunidade", "entrar em comunidade",
-            "adicionar membro", "visualizar informações"*/
-        };
+        communities = new String[nCommunity][2]; // [community][name/description]
+        friendRequests = new boolean[nUser][nUser]; // [user][friend]
+        friendship = new boolean[nUser][nUser]; // [friend1][friend2]
+        input = new Scanner(System.in);
+        memberRequests = new boolean[nCommunity][nUser]; // [community][member]
+        members = new boolean[nCommunity][nUser]; // [community][member]
+        messages = new String[nUser][nUser][nMessage]; // [sender][receiver][message]
+
+        owners = new int[nCommunity];
+        for (int owner = 0; owner < nUser; owner++)
+            owners[owner] = -1;
+
+        passwords = new String[nUser];
+        profiles = new String[nUser][nAttribute][2]; // [user][attribute][key/value]
+        userNames = new String[nUser];
+        users = new String[nUser];
 
         while (true) {
-            System.out.println("---\n0 - fechar");
-            int a;
-            for (a = 1; a <= startActions.length; a++) {
-                System.out.println(a + " - " + startActions[a - 1]);
-            }
-            System.out.print("---\nEscolha uma ação: ");
-            a = input.nextInt(); input.nextLine();
+            System.out.println("---\n0 - fechar\n1 - criar conta\n2 - entrar\n---");
+            System.out.print("Escolha uma ação: ");
+            int a = input.nextInt(); input.nextLine();
 
             if (a == 0) break;
 
@@ -56,11 +62,12 @@ public class IFace {
         boolean[] friendRequests = IFace.friendRequests[user];
         boolean noRequest = true;
 
-        for (int friend = 0; friend < friendRequests.length; friend++) {
+        for (int friend = 0; friend < nUser; friend++) {
             if (!friendRequests[friend]) continue;
-            else friendRequests[friend] = noRequest = false;
+            else
+                friendRequests[friend] = noRequest = false;
 
-            String name = names[friend];
+            String name = userNames[friend];
 
             System.out.println("Usuário: " + name);
             System.out.print("Aceitar? (s/n): ");
@@ -70,7 +77,65 @@ public class IFace {
             }
         }
 
-        if (noRequest) System.out.println("<Aviso> Nenhuma solicitação de amizade.");
+        if (noRequest)
+            System.out.println("<Aviso> Nenhuma solicitação de amizade.");
+    }
+
+    static void acceptMember(int owner) {
+        boolean noRequest = true;
+
+        for (int community = 0; community < nCommunity; community++) {
+            if (owners[community] != owner) continue;
+
+            String communityName = communities[community][0];
+            boolean[] memberRequests = IFace.memberRequests[community];
+
+            for (int member = 0; member < nUser; member++) {
+                if (!memberRequests[member]) continue;
+                else
+                    memberRequests[member] = noRequest = false;
+
+                String memberName = userNames[member];
+
+                System.out.println("Comunidade: " + communityName);
+                System.out.println("Membro: " + memberName);
+                System.out.print("Aceitar? (s/n): ");
+                if (input.nextLine().equals("s")) {
+                    members[community][member] = true;
+                    System.out.println("Membro " + memberName + " adicionado.");
+                }
+            }
+        }
+
+        if (noRequest)
+            System.out.println("<Aviso> Nenhuma solicitação de participação.");
+    }
+
+    static void addCommunity(int owner) {
+        System.out.print("Nome da comunidade: ");
+        String name = input.nextLine();
+        if (name.isEmpty())
+            name = "0";
+
+        int community = -1;
+        for (int c = 0; c < nCommunity; c++) {
+            String nm = communities[c][0];
+            if (nm == null) {
+                if (community < 0) community = c;
+            } else if (nm.equals(name)) {
+                System.out.println("<Erro> comunidade já existente.");
+                return;
+            }
+        }
+
+        communities[community][0] = name;
+        owners[community] = owner;
+        members[community][owner] = true;
+
+        System.out.print("Descrição: ");
+        communities[community][1] = input.nextLine();
+
+        System.out.println("Comunidade " + name + " criada.");
     }
 
     static void addFriend(int user) {
@@ -81,58 +146,49 @@ public class IFace {
         }
         friendRequests[friend][user] = true;
 
-        System.out.println("Solicitação de amizade enviada para " + names[friend] + ".");
+        System.out.println("Solicitação de amizade enviada para " + userNames[friend] + ".");
     }
 
     static void debug() {
-        System.out.println("Usuários:\n---");
-        for (int user = 0; user < users.length; user++) {
+        System.out.println("Usuários:");
+        for (int user = 0; user < nUser; user++) {
             String login = users[user];
             if (login == null) continue;
 
-            System.out.println(login);
-            System.out.println("senha: " + passwords[user]);
-            System.out.println("nome: " + names[user]);
+            System.out.println("---\nLogin: " + login);
+            System.out.println("Senha: " + passwords[user]);
+            System.out.println("Nome: " + userNames[user]);
+        }
 
-            String[][] profile = profiles[user];
-            for (String[] attribute : profile) {
-                String key = attribute[0];
-                if (key == null) continue;
-                String value = attribute[1];
-                System.out.println(key + ": " + value);
-            }
+        System.out.println("---\nComunidades:");
+        for (int community = 0; community < nCommunity; community++) {
+            String name = communities[community][0];
+            if (name == null) continue;
 
-            boolean[] friends = friendship[user];
-            System.out.println("amigos:");
-            for (int friend = 0; friend < friends.length; friend++)
-                if (friends[friend]) System.out.println("  " + names[friend]);
+            System.out.println("---\nNome: " + name);
+            System.out.println("Proprietário: " + userNames[owners[community]]);
+
+            boolean[] members = IFace.members[community];
+            System.out.println("Membros:");
+            for (int member = 0; member < nUser; member++)
+                if (members[member])
+                    System.out.println("  " + userNames[member]);
         }
     }
-    /*
-    private static void debug() {
-
-      System.out.println("Comunidades:\n---");
-
-      for (String name : communities.keySet()) {
-
-         System.out.println(communities.get(name));
-
-      }
-
-   }
-    */
 
     static void editProfile(int user) {
         String[][] profile = profiles[user];
         while (true) {
             System.out.print("Atributo ('-' para encerrar): ");
-            String key = input.nextLine().toLowerCase();
+            String key = input.nextLine();
+            key = key.substring(0, 1).toUpperCase() + key.substring(1).toLowerCase();
             if (key.isEmpty() || key.equals("-")) break;
 
             System.out.print("Valor: ");
             String value = input.nextLine();
 
-            if (key.equals("nome")) names[user] = value;
+            if (key.equals("Nome"))
+                userNames[user] = value;
             else {
                 String[] attribute = null;
 
@@ -154,12 +210,42 @@ public class IFace {
         }
     }
 
+    static void enterCommunity(int member) {
+        int community = getCommunity();
+        if (community < 0) {
+            System.out.println("<Erro> Comunidade não encontrada.");
+            return;
+        }
+
+        memberRequests[community][member] = true;
+
+        System.out.println(
+            "Solicitação de participação enviada para " + communities[community][0]
+        );
+    }
+
+    static int getCommunity() {
+        System.out.print("Nome da comunidade: ");
+        String name = input.nextLine();
+
+        int community = -1;
+        for (int c = 0; c < nCommunity; c++) {
+            String nm = communities[c][0];
+            if (nm != null && nm.equals(name)) {
+                community = c;
+                break;
+            }
+        }
+
+        return community;
+    }
+
     static int getUser(String prompt) {
         System.out.print(prompt);
         String login = input.nextLine();
 
         int user = -1;
-        for (int u = 0; u < users.length; u++) {
+        for (int u = 0; u < nUser; u++) {
             String lg = users[u];
             if (lg != null && lg.equals(login)) {
                 user = u;
@@ -168,6 +254,57 @@ public class IFace {
         }
 
         return user;
+    }
+
+    static void sendMessage(int sender) {
+        System.out.println("---\n0 - usuário\n1 - comunidade\n---");
+        System.out.print("Enviar mensagem para: ");
+        int r = input.nextInt(); input.nextLine();
+
+        boolean[] receivers;
+        String recName;
+        if (r == 1) {
+            int receiver = getCommunity();
+            if (receiver < 0) {
+                System.out.println("<Erro> Comunidade não encontrada.");
+                return;
+            }
+            if (!members[receiver][sender]) {
+                System.out.println("<Erro> É necessário ser membro da comunidade.");
+                return;
+            }
+            receivers = members[receiver];
+            recName = communities[receiver][0];
+        } else {
+            int receiver = getUser("Login do destinatário: ");
+            if (receiver < 0) {
+                System.out.println("<Erro> Usuário não encontrado.");
+                return;
+            }
+            receivers = new boolean[nUser];
+            receivers[receiver] = true;
+            recName = userNames[receiver];
+        }
+
+        System.out.println("Conteúdo da mensagem ('.' para encerrar):");
+        String message = "";
+        while (true) {
+            String line = input.nextLine();
+            if (line.isEmpty() || line.equals(".")) break;
+            message += line + "\n";
+        }
+
+        for (int receiver = 0; receiver < nUser; receiver++) {
+            if (!receivers[receiver] || receiver == sender) continue;
+
+            for (int m = 0; m < nMessage; m++)
+                if (messages[sender][receiver][m] == null) {
+                    messages[sender][receiver][m] = message;
+                    break;
+                }
+        }
+
+        System.out.println("Mensagem enviada para " + recName + ".");
     }
 
     static void signIn() {
@@ -184,18 +321,26 @@ public class IFace {
             return;
         }
 
-        String[] actions = {"editar perfil", "adicionar amigo", "aceitar amigo"};
+        String[] actions = {
+            "sair", "editar perfil", "adicionar amigo", "aceitar amigo",
+            "criar comunidade", "entrar em comunidade", "aceitar membro",
+            "enviar mensagem", "visualizar informações", "remover conta"
+        };
 
         while (true) {
-            System.out.println("---\n0 - sair");
+            System.out.println("---");
             int a;
-            for (a = 1; a <= actions.length; a++) {
-                System.out.println(a + " - " + actions[a - 1]);
+            for (a = 0; a < actions.length; a++) {
+                System.out.println(a + " - " + actions[a]);
             }
             System.out.print("---\nEscolha uma ação: ");
             a = input.nextInt(); input.nextLine();
 
             if (a == 0) break;
+            if (a == 9) {
+                signOut(user);
+                break;
+            }
 
             switch (a) {
                 case 1:
@@ -210,10 +355,62 @@ public class IFace {
                 acceptFriend(user);
                 break;
 
+                case 4:
+                addCommunity(user);
+                break;
+
+                case 5:
+                enterCommunity(user);
+                break;
+
+                case 6:
+                acceptMember(user);
+                break;
+
+                case 7:
+                sendMessage(user);
+                break;
+
+                case 8:
+                viewInfo(user);
+                break;
+
                 default:
                 System.out.println("<Erro> Opção inválida.");
             }
         }
+    }
+
+    static void signOut(int user) {
+        for (int community = 0; community < nCommunity; community++) {
+            if (owners[community] == user) {
+                for (int member = 0; member < nUser; member++) {
+                    members[community][member] = false;
+                    memberRequests[community][member] = false;
+                }
+                owners[community] = -1;
+                communities[community][0] = communities[community][1] = null;
+            }
+            members[community][user] = false;
+            memberRequests[community][user] = false;
+        }
+
+        for (int friend = 0; friend < nUser; friend++) {
+            friendship[user][friend] = friendship[friend][user] = false;
+            friendRequests[user][friend] = friendRequests[friend][user] = false;
+        }
+
+        for (int sr = 0; sr < nUser; sr++)
+            for (int message = 0; message < nMessage; message++)
+                messages[user][sr][message] = messages[sr][user][message] = null;
+
+        for (int attribute = 0; attribute < nAttribute; attribute++)
+            profiles[user][attribute][0] = profiles[user][attribute][1] = null;
+
+        String name = userNames[user];
+        passwords[user] = userNames[user] = users[user] = null;
+
+        System.out.println("Conta de usuário " + name + " removida.");
     }
 
     static void signUp() {
@@ -222,7 +419,7 @@ public class IFace {
         if (login.isEmpty()) login = "0";
 
         int user = -1;
-        for (int u = 0; u < users.length; u++) {
+        for (int u = 0; u < nUser; u++) {
             String lg = users[u];
             if (lg == null) {
                 if (user < 0) user = u;
@@ -239,8 +436,58 @@ public class IFace {
 
         System.out.print("Nome de usuário: ");
         String name = input.nextLine();
-        names[user] = name;
+        userNames[user] = name;
 
         System.out.println("Conta de usuário " + name + " criada.");
+    }
+
+    static void viewInfo(int user) {
+        System.out.println("---\n0 - perfil\n1 - comunidades\n2 - amigos\n3 - mensagens\n---");
+        System.out.print("Informação: ");
+        int info = input.nextInt(); input.nextLine();
+
+        switch (info) {
+            case 1:
+            System.out.println("Comunidades:");
+            for (int community = 0; community < nCommunity; community++) {
+                if (!members[community][user]) continue;
+
+                System.out.println("---\nNome: " + communities[community][0]);
+                System.out.println("Descrição: " + communities[community][1]);
+                System.out.println("Proprietário: " + userNames[owners[community]]);
+            }
+            break;
+
+            case 2:
+            System.out.println("Amigos:");
+            for (int friend = 0; friend < nUser; friend++)
+                if (friendship[user][friend])
+                    System.out.println("  " + userNames[friend]);
+            break;
+
+            case 3:
+            System.out.println("Mensagens:");
+            for (int sender = 0; sender < nUser; sender++) {
+                for (int m = 0; m < nMessage; m++) {
+                    String message = messages[sender][user][m];
+                    if (message != null) {
+                        System.out.println("---\nRemetente: " + userNames[sender]);
+                        System.out.println(message);
+                    }
+                    messages[sender][user][m] = null; // read => delete
+                }
+            }
+            break;
+
+            default:
+            System.out.println("Nome: " + userNames[user]);
+            String[][] profile = profiles[user];
+            for (String[] attribute : profile) {
+                String key = attribute[0];
+                if (key == null) continue;
+                String value = attribute[1];
+                System.out.println(key + ": " + value);
+            }
+        }
     }
 }
