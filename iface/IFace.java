@@ -3,13 +3,12 @@ package iface;
 import java.util.Scanner;
 
 public class IFace {
-    static String[][] communities;
+    static String[][] communities, users;
     static boolean[][] friendRequests, friendship, memberRequests, members;
     static Scanner input;
     static String[][][] messages, profiles;
     static int nAttribute, nUser, nCommunity, nMessage;
     static int[] owners;
-    static String[] passwords, userNames, users;
 
     public static void main(String[] args) {
         nAttribute = nMessage = 8;
@@ -27,10 +26,8 @@ public class IFace {
         for (int owner = 0; owner < nUser; owner++)
             owners[owner] = -1;
 
-        passwords = new String[nUser];
         profiles = new String[nUser][nAttribute][2]; // [user][attribute][key/value]
-        userNames = new String[nUser];
-        users = new String[nUser];
+        users = new String[nUser][3]; // [user][login/password/name]
 
         while (true) {
             System.out.println("---\n0 - fechar\n1 - criar conta\n2 - entrar\n---");
@@ -67,7 +64,7 @@ public class IFace {
             else
                 friendRequests[friend] = noRequest = false;
 
-            String name = userNames[friend];
+            String name = users[friend][2];
 
             System.out.println("Usuário: " + name);
             System.out.print("Aceitar? (s/n): ");
@@ -95,7 +92,7 @@ public class IFace {
                 else
                     memberRequests[member] = noRequest = false;
 
-                String memberName = userNames[member];
+                String memberName = users[member][2];
 
                 System.out.println("Comunidade: " + communityName);
                 System.out.println("Membro: " + memberName);
@@ -146,18 +143,18 @@ public class IFace {
         }
         friendRequests[friend][user] = true;
 
-        System.out.println("Solicitação de amizade enviada para " + userNames[friend] + ".");
+        System.out.println("Solicitação de amizade enviada para " + users[friend][2] + ".");
     }
 
     static void debug() {
         System.out.println("Usuários:");
         for (int user = 0; user < nUser; user++) {
-            String login = users[user];
+            String login = users[user][0];
             if (login == null) continue;
 
             System.out.println("---\nLogin: " + login);
-            System.out.println("Senha: " + passwords[user]);
-            System.out.println("Nome: " + userNames[user]);
+            System.out.println("Senha: " + users[user][1]);
+            System.out.println("Nome: " + users[user][2]);
         }
 
         System.out.println("---\nComunidades:");
@@ -166,13 +163,13 @@ public class IFace {
             if (name == null) continue;
 
             System.out.println("---\nNome: " + name);
-            System.out.println("Proprietário: " + userNames[owners[community]]);
+            System.out.println("Proprietário: " + users[owners[community]][2]);
 
             boolean[] members = IFace.members[community];
             System.out.println("Membros:");
             for (int member = 0; member < nUser; member++)
                 if (members[member])
-                    System.out.println("  " + userNames[member]);
+                    System.out.println("  " + users[member][2]);
         }
     }
 
@@ -188,7 +185,7 @@ public class IFace {
             String value = input.nextLine();
 
             if (key.equals("Nome"))
-                userNames[user] = value;
+                users[user][2] = value;
             else {
                 String[] attribute = null;
 
@@ -246,7 +243,7 @@ public class IFace {
 
         int user = -1;
         for (int u = 0; u < nUser; u++) {
-            String lg = users[u];
+            String lg = users[u][0];
             if (lg != null && lg.equals(login)) {
                 user = u;
                 break;
@@ -283,7 +280,7 @@ public class IFace {
             }
             receivers = new boolean[nUser];
             receivers[receiver] = true;
-            recName = userNames[receiver];
+            recName = users[receiver][2];
         }
 
         System.out.println("Conteúdo da mensagem ('.' para encerrar):");
@@ -316,7 +313,7 @@ public class IFace {
 
         System.out.print("Senha: ");
         String password = input.nextLine();
-        if (!passwords[user].equals(password)) {
+        if (!users[user][1].equals(password)) {
             System.out.println("<Erro> Senha incorreta.");
             return;
         }
@@ -407,8 +404,8 @@ public class IFace {
         for (int attribute = 0; attribute < nAttribute; attribute++)
             profiles[user][attribute][0] = profiles[user][attribute][1] = null;
 
-        String name = userNames[user];
-        passwords[user] = userNames[user] = users[user] = null;
+        String name = users[user][2];
+        users[user][0] = users[user][1] = users[user][2] = null;
 
         System.out.println("Conta de usuário " + name + " removida.");
     }
@@ -420,7 +417,7 @@ public class IFace {
 
         int user = -1;
         for (int u = 0; u < nUser; u++) {
-            String lg = users[u];
+            String lg = users[u][0];
             if (lg == null) {
                 if (user < 0) user = u;
             } else if (lg.equals(login)) {
@@ -429,14 +426,14 @@ public class IFace {
             }
         }
 
-        users[user] = login;
+        users[user][0] = login;
 
         System.out.print("Senha: ");
-        passwords[user] = input.nextLine();
+        users[user][1] = input.nextLine();
 
         System.out.print("Nome de usuário: ");
         String name = input.nextLine();
-        userNames[user] = name;
+        users[user][2] = name;
 
         System.out.println("Conta de usuário " + name + " criada.");
     }
@@ -454,7 +451,7 @@ public class IFace {
 
                 System.out.println("---\nNome: " + communities[community][0]);
                 System.out.println("Descrição: " + communities[community][1]);
-                System.out.println("Proprietário: " + userNames[owners[community]]);
+                System.out.println("Proprietário: " + users[owners[community]][2]);
             }
             break;
 
@@ -462,7 +459,7 @@ public class IFace {
             System.out.println("Amigos:");
             for (int friend = 0; friend < nUser; friend++)
                 if (friendship[user][friend])
-                    System.out.println("  " + userNames[friend]);
+                    System.out.println("  " + users[friend][2]);
             break;
 
             case 3:
@@ -471,7 +468,7 @@ public class IFace {
                 for (int m = 0; m < nMessage; m++) {
                     String message = messages[sender][user][m];
                     if (message != null) {
-                        System.out.println("---\nRemetente: " + userNames[sender]);
+                        System.out.println("---\nRemetente: " + users[sender][2]);
                         System.out.println(message);
                     }
                     messages[sender][user][m] = null; // read => delete
@@ -480,7 +477,7 @@ public class IFace {
             break;
 
             default:
-            System.out.println("Nome: " + userNames[user]);
+            System.out.println("Nome: " + users[user][2]);
             String[][] profile = profiles[user];
             for (String[] attribute : profile) {
                 String key = attribute[0];
