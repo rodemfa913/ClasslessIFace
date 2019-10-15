@@ -1,8 +1,7 @@
 # ClasslessIFace
 Versão sem classes do projeto IFace do repositório EclipseProjects.
 
-Instruções:
-
+## Instruções
 Abra o terminal no diretório raiz (este) e execute:
 
 `$ java iface.IFace`
